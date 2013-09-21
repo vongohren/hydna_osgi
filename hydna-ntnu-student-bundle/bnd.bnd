@@ -1,0 +1,10 @@
+Service-Component: *
+-buildpath: osgi.core,\
+	osgi.cmpn,\
+	biz.aQute.bnd.annotation,\
+	junit.osgi,\
+	hydna-bundle;version=latest
+Private-Package: hydna.ntnu.student.impl
+Export-Package: hydna.ntnu.student.api,\
+	hydna.ntnu.student.listener.api
+Bundle-Version: 1.0.0

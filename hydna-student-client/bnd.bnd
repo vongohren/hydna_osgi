@@ -1,0 +1,9 @@
+Service-Component: *
+-buildpath: osgi.core,\
+	osgi.cmpn,\
+	biz.aQute.bnd.annotation,\
+	junit.osgi,\
+	hydna-ntnu-student-bundle;version=latest
+Private-Package: hydna.student.ntnu.client
+-runfw: org.apache.felix.framework;version='[4.0.3,4.0.3]'
+Bundle-Version: 1.0.0
