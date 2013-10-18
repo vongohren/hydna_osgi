@@ -1,0 +1,3 @@
+[submodule "hydna-java"]
+	path = hydna-java
+	url = https://github.com/hydna/hydna-java.git
