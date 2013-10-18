@@ -34,7 +34,9 @@ public class Client {
 			}
 		};
 		hydnaSvc.registerListener(this.listener);
-		hydnaSvc.connectChannel("student.hydna.net/1", "rwe");
+		hydnaSvc.connectChannel("students.hydna.net/room", "rwe");
+		hydnaSvc.emitSignal("SINGALS CLIENT");
+		hydnaSvc.sendMessage("MESSAGE CLIENT");
 	}
 	
 	@Reference

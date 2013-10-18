@@ -5,12 +5,14 @@ import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 
+import com.hydna.Channel;
+import com.hydna.ChannelData;
+import com.hydna.ChannelError;
+import com.hydna.ChannelEvent;
+import com.hydna.ChannelMode;
+import com.hydna.ChannelSignal;
+
 import aQute.bnd.annotation.component.Component;
-import hydna.Channel;
-import hydna.ChannelData;
-import hydna.ChannelError;
-import hydna.ChannelMode;
-import hydna.ChannelSignal;
 import hydna.ntnu.student.api.HydnaApi;
 import hydna.ntnu.student.listener.api.HydnaListener;
 
@@ -20,6 +22,8 @@ public class HydnaImpl implements HydnaApi{
 	private HydnaListener listener;
 	private Channel channel;
 	private boolean stayConnected;
+	private ChannelEvent event;
+	private Thread thread;
 
 	@Override
 	public void connectChannel(String channelURL, String mode) {
@@ -36,61 +40,52 @@ public class HydnaImpl implements HydnaApi{
 			else if(mode.equals("e")) this.channel.connect(channelURL, ChannelMode.EMIT);
 			else if(mode.equals("l")) this.channel.connect(channelURL, ChannelMode.LISTEN);
 			
-			while(!channel.isConnected()) {
-		        channel.checkForChannelError();
-		        Thread.sleep(1000);
-		    }
 			startMessageListening();
-			
-			
 		} catch(ChannelError error) {
 			this.listener.systemMessage("Channel error: "+ error);
+			stayConnected(false);
 		} catch (InterruptedException e) {
 			this.listener.systemMessage("Interrupted Exception for thread sleep: "+e);
 		}
 		
 	}
-	public void startMessageListening() {
-		try {
-			while(stayConnected) {
-		        if (!channel.isDataEmpty()) {
-		            ChannelData data = channel.popData();
-		            ByteBuffer payload = data.getContent();
 	
-		            Charset charset = Charset.forName("US-ASCII");
-	            	CharsetDecoder decoder = charset.newDecoder();
-					
-	            	String m = decoder.decode(payload).toString();
-					
-	            	this.listener.messageRecieved(m);
-		        } 
-		        else if (!channel.isSignalEmpty()) {
-		            ChannelSignal signal = channel.popSignal();
-		            ByteBuffer payload = signal.getContent();
-	
-		            Charset charset = Charset.forName("US-ASCII");
-	            	CharsetDecoder decoder = charset.newDecoder();
-					
-	            	String m = decoder.decode(payload).toString();
-					
-	            	this.listener.signalRecieved(m);
-		        }
-		        else {
-		            channel.checkForChannelError();
-		        }
-		    }
-		}
-		catch(ChannelError e) {
-			this.listener.systemMessage("Channel error: "+ e);
-		} catch (CharacterCodingException e) {
-			this.listener.systemMessage("CharacterCodingException: "+ e);
-		}
+	public void startMessageListening() throws InterruptedException, ChannelError {
+		Runnable runnable = new Runnable() {
+			@Override
+			public void run() {
+				while(stayConnected) {
+			        if (channel.hasEvents()) {
+			        	try {
+							event = channel.nextEvent();
+						} catch (ChannelError | InterruptedException e) {
+							listener.systemMessage("Channel error "+e);
+							
+						}
+			        	if(event instanceof ChannelData) {
+			        		if(event.isUtf8Content()) {
+			        			listener.messageRecieved(event.getString());
+			        		}
+			        		else {
+			        			listener.messageRecieved("Recieved binary data, use orignial library to handle that");
+			        		}
+			        	}
+			        	else {
+			        		listener.signalRecieved(event.getString());
+			        	}
+			        } 
+			    }
+				
+			}
+		};
+		thread = new Thread(runnable);
+		thread.start();
 	}
 
 	@Override
 	public void sendMessage(String message) {
 		try {
-			channel.writeString(message);
+			channel.send(message);
 		} catch (ChannelError e) {
 			this.listener.systemMessage("Channel Error: "+e);
 		}
@@ -98,7 +93,6 @@ public class HydnaImpl implements HydnaApi{
 
 	@Override
 	public void registerListener(HydnaListener listener) {
-		System.out.println("REGISTERING LISTENER");
 		this.listener = listener;
 	}
 
@@ -106,9 +100,16 @@ public class HydnaImpl implements HydnaApi{
 	public void stayConnected(boolean stayConnected) {
 		this.stayConnected = stayConnected;
 	}
+	
 	@Override
 	public void emitSignal(String signal) {
-		// TODO Auto-generated method stub
+		
+		try {
+			System.out.println("EMITTED SIGNAL");
+			channel.emit(signal);
+		} catch (ChannelError e) {
+			this.listener.systemMessage("Channel Error: "+e);
+		}
 		
 	}
 
