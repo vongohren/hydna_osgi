@@ -4,7 +4,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 class Frame {
-    static final short HEADER_SIZE = 0x07;
+    static final short HEADER_SIZE = 0x05;
 
     // Opcodes
     static final int KEEPALIVE = 0x00;
@@ -34,7 +34,7 @@ class Frame {
     
 
     // Upper payload limit (10kb)
-    static final int PAYLOAD_MAX_LIMIT = 0xFFFFFF - HEADER_SIZE;
+    static final int PAYLOAD_MAX_LIMIT = 0xFFFF - HEADER_SIZE;
 	
     private ByteBuffer m_bytes;
 	
@@ -55,7 +55,7 @@ class Frame {
             }
         }
 		
-        m_bytes = ByteBuffer.allocate(length);
+        m_bytes = ByteBuffer.allocate(length + 2);
         m_bytes.order(ByteOrder.BIG_ENDIAN);
 		
         m_bytes.putShort(length);
@@ -65,7 +65,7 @@ class Frame {
         if (data != null) {
             m_bytes.put(data);
         }
-		
+
         m_bytes.flip();
     }
 	
